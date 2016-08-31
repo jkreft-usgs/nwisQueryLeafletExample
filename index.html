@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Leaflet Quick Start Guide Example</title>
+	<meta charset="utf-8" />
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link rel="stylesheet" href="https://npmcdn.com/leaflet@1.0.0-rc.3/dist/leaflet.css" />
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+</head>
+<body>
+	<div id="mapid" style="width: 800px; height: 600px"></div>
+
+	<script src="https://npmcdn.com/leaflet@1.0.0-rc.3/dist/leaflet.js"></script>
+	<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+	<script>
+
+		var map= L.map('mapid');
+		var USGSrtGages = L.featureGroup();
+		USGSrtGages.addTo(map);
+
+		var Stamen_TonerLite = L.tileLayer('http://stamen-tiles-{s}.a.ssl.fastly.net/toner-lite/{z}/{x}/{y}.{ext}', {
+			attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+			subdomains: 'abcd',
+			minZoom: 0,
+			maxZoom: 20,
+			ext: 'png'
+		}).addTo(map);
+		
+		map.on('load moveend', function(e) {
+			USGSrtGages.clearLayers();
+			if (map.hasLayer(USGSrtGages) && map.getZoom() >= 10) {
+				var bbox = map.getBounds().getSouthWest().lng.toFixed(7) + ',' + map.getBounds().getSouthWest().lat.toFixed(7) + ',' + map.getBounds().getNorthEast().lng.toFixed(7) + ',' + map.getBounds().getNorthEast().lat.toFixed(7);
+				queryNWISrtGages(bbox);
+			}
+		});
+		
+		USGSrtGages.on('click', function(e) { 
+			var popupContent = '';
+			$.each(e.layer.data.parameters, function( index, parameter ) {
+				popupContent += '<tr><td>' + index + '</td><td>' + parameter.Value + '</td><td>' + parameter.Time + '</td></tr>'
+			})
+			e.layer.bindPopup('<h4>' + e.layer.data.siteName + '</h4><h5>' + e.layer.data.siteCode[0].value + '</h5><table class="table table-condensed"><thead><tr><th>Parameter</th><th>Value</th><th>Timestamp</th></tr></thead><tbody>' + popupContent + '</tbody></table>',{autoPan:false}).openPopup();
+			
+		})
+	
+		map.setView([42.65, -73.75], 10);
+		
+		function queryNWISrtGages(bbox) {
+
+			var NWISmarkers = {};
+
+			//NWIS query options from http://waterservices.usgs.gov/rest/IV-Test-Tool.html
+			var parameterCodeList = '00060,00065';
+			var siteTypeList = 'OC,OC-CO,ES,LK,ST,ST-CA,ST-DCH,ST-TS';
+			var siteStatus = 'active';
+
+			var url = 'http://waterservices.usgs.gov/nwis/iv/?format=json&bBox=' + bbox + '&parameterCd=' + parameterCodeList + '&siteType=' + siteTypeList + '&siteStatus=' + siteStatus;
+			$.getJSON(url, function(data) {
+				console.log(data.value.timeSeries.length + ' usgs gages found.');
+
+				$.each(data.value.timeSeries, function( index, site ) {
+					
+					var siteID = site.name.split(':')[1];
+
+					//check to see if we have this site already 
+					if (NWISmarkers[siteID]) {
+						if (site.values[0].value[0]) {
+							NWISmarkers[siteID].data.parameters[site.variable.variableName] = {}
+							NWISmarkers[siteID].data.parameters[site.variable.variableName]['Time'] = site.values[0].value[0].dateTime;
+							NWISmarkers[siteID].data.parameters[site.variable.variableName]['Value'] = site.values[0].value[0].value;
+						}
+					}
+
+					//otherwise add new site
+					else {
+						if (site.values[0].value[0]) {
+							NWISmarkers[siteID] = L.marker([site.sourceInfo.geoLocation.geogLocation.latitude, site.sourceInfo.geoLocation.geogLocation.longitude])
+							NWISmarkers[siteID].data = {siteName:site.sourceInfo.siteName,siteCode:site.sourceInfo.siteCode}
+							NWISmarkers[siteID].data.parameters = {}
+							NWISmarkers[siteID].data.parameters[site.variable.variableName] = {}
+							NWISmarkers[siteID].data.parameters[site.variable.variableName]['Time'] = site.values[0].value[0].dateTime;
+							NWISmarkers[siteID].data.parameters[site.variable.variableName]['Value'] = site.values[0].value[0].value;
+							//add point to featureGroup
+							USGSrtGages.addLayer(NWISmarkers[siteID]);
+						}
+					}
+				});
+			});
+		}
+
+	</script>
+</body>
+</html>
