@@ -9,8 +9,6 @@
   "author": "",
   "license": "Apache-2.0",
   "dependencies": {
-    "jquery": "^3.1.0",
-    "leaflet": "^1.0.0-rc.3"
   },
   "devDependencies": {
     "lite-server": "^2.2.0"
