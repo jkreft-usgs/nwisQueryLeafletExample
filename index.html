@@ -6,15 +6,15 @@
 
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-	<link rel="stylesheet" href="https://npmcdn.com/leaflet@1.0.0-rc.3/dist/leaflet.css" />
+	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.css" />
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 </head>
 <body>
 	<div id="mapid" style="width: 800px; height: 600px"></div>
 
-	<script src="https://npmcdn.com/leaflet@1.0.0-rc.3/dist/leaflet.js"></script>
+	<script src="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.js"></script>
 	<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
-	<script src="https://code.highcharts.com/highcharts.js"></script>
+	<script src="http://code.highcharts.com/highcharts.js"></script>
 	
 	<script>
 		var map= L.map('mapid');
@@ -30,75 +30,83 @@
 		}).addTo(map);
 		
 		map.on('load moveend', function(e) {
-			USGSrtGages.clearLayers();
-			if (map.hasLayer(USGSrtGages) && map.getZoom() >= 10) {
+			var foundPopup;
+			$.each(USGSrtGages.getLayers(), function( index, marker ) {
+				var popup = marker.getPopup();
+				if (popup) {
+					foundPopup = popup._isOpen;
+				}
+			})
+
+			if (map.hasLayer(USGSrtGages) && map.getZoom() >= 10 && !foundPopup) {
+				USGSrtGages.clearLayers();
 				var bbox = map.getBounds().getSouthWest().lng.toFixed(7) + ',' + map.getBounds().getSouthWest().lat.toFixed(7) + ',' + map.getBounds().getNorthEast().lng.toFixed(7) + ',' + map.getBounds().getNorthEast().lat.toFixed(7);
 				queryNWISrtGages(bbox);
 			}
 		});
 		
-	USGSrtGages.on('click', function(e) { 
-		var popupContent = '';
-		$.each(e.layer.data.parameters, function( index, parameter ) {
-			popupContent += '<tr><td>' + index + '</td><td>' + parameter.Value + '</td><td>' + parameter.Time + '</td></tr>'
-		})
-
-		//if there is some data, show the div
-		$('#graphContainer').show();
-
-		e.layer.bindPopup('<h4>' + e.layer.data.siteName + '</h4><h5>' + e.layer.data.siteCode[0].value + '</h5><table class="table table-condensed"><thead><tr><th>Parameter</th><th>Value</th><th>Timestamp</th></tr></thead><tbody>' + popupContent + '</tbody></table><div id="graphContainer" style="width:100%; height:200px;display:none;"></div>',{autoPan:false}).openPopup();
-
-		//date range example '&startDT=2016-08-28&endDT=2016-09-01'
-		var timeQueryRange = '&startDT=2016-08-28&endDT=2016-09-01'
-		var timeQuery = '&period=P7D'
-		
-		$.getJSON('http://waterservices.usgs.gov/nwis/iv/?format=json&sites=' + e.layer.data.siteCode[0].value + '&parameterCd=00065' + timeQuery, function(data) {
-			console.log('graphdata: ',data)
-
-			if (data.value.timeSeries[0].values[0].value.length <= 0) return;
+		USGSrtGages.on('click', function(e) { 
+			var popupContent = '';
+			$.each(e.layer.data.parameters, function( index, parameter ) {
+				popupContent += '<tr><td>' + index + '</td><td>' + parameter.Value + '</td><td>' + parameter.Time + '</td></tr>'
+			})
 
 			//if there is some data, show the div
 			$('#graphContainer').show();
 
-			//transpose array
-			var graphData = [];
-			$.map( data.value.timeSeries[0].values[0].value, function( val, i ) {
-				graphData.push([Date.parse(val.dateTime),parseFloat(val.value)])
-			});
-			Highcharts.setOptions({global: { useUTC: false } });
-			$('#graphContainer').highcharts({
-				chart: {
-					type: 'line'
-				},
-				title: {
-					text: e.layer.data.siteCode[0].agencyCode + ' ' + e.layer.data.siteCode[0].value + ' ' + e.layer.data.siteName
-				},
-				credits: {
-					enabled: false
-				},
-				xAxis: {
-					type: "datetime",
-					labels: {
-						formatter: function () {
-							return Highcharts.dateFormat('%b %d %Y', this.value);
-						},
-						//rotation: 90,
-						align: 'center'
-					}
-				},
-				yAxis: {
-					title: { text: 'Gage Height, feet' }
-				},
-				series: [{
-                    tooltip: {
-						pointFormat: "Gage height: {point.y} feet"
+			e.layer.bindPopup('<h4>' + e.layer.data.siteName + '</h4><h5>' + e.layer.data.siteCode[0].value + '</h5><table class="table table-condensed"><thead><tr><th>Parameter</th><th>Value</th><th>Timestamp</th></tr></thead><tbody>' + popupContent + '</tbody></table><div id="graphContainer" style="width:100%; height:200px;display:none;"></div>',{autoPan:false}).openPopup();
+
+			//date range example '&startDT=2016-08-28&endDT=2016-09-01'
+			var timeQueryRange = '&startDT=2016-08-28&endDT=2016-09-01'
+			var timeQuery = '&period=P7D'
+			
+			$.getJSON('http://waterservices.usgs.gov/nwis/iv/?format=json&sites=' + e.layer.data.siteCode[0].value + '&parameterCd=00065' + timeQuery, function(data) {
+				//console.log('graphdata: ',data)
+
+				if (data.value.timeSeries[0].values[0].value.length <= 0) return;
+
+				//if there is some data, show the div
+				$('#graphContainer').show();
+
+				//transpose array
+				var graphData = [];
+				$.map( data.value.timeSeries[0].values[0].value, function( val, i ) {
+					graphData.push([Date.parse(val.dateTime),parseFloat(val.value)])
+				});
+				Highcharts.setOptions({global: { useUTC: false } });
+				$('#graphContainer').highcharts({
+					chart: {
+						type: 'line'
 					},
-					showInLegend: false, 
-					data: graphData
-				}]
+					title: {
+						text: e.layer.data.siteCode[0].agencyCode + ' ' + e.layer.data.siteCode[0].value + ' ' + e.layer.data.siteName
+					},
+					credits: {
+						enabled: false
+					},
+					xAxis: {
+						type: "datetime",
+						labels: {
+							formatter: function () {
+								return Highcharts.dateFormat('%b %d %Y', this.value);
+							},
+							//rotation: 90,
+							align: 'center'
+						}
+					},
+					yAxis: {
+						title: { text: 'Gage Height, feet' }
+					},
+					series: [{
+						tooltip: {
+							pointFormat: "Gage height: {point.y} feet"
+						},
+						showInLegend: false, 
+						data: graphData
+					}]
+				});
 			});
-		});
-	})
+		})
 	
 		map.setView([42.65, -73.75], 10);
 		
@@ -113,7 +121,7 @@
 
 			var url = 'http://waterservices.usgs.gov/nwis/iv/?format=json&bBox=' + bbox + '&parameterCd=' + parameterCodeList + '&siteType=' + siteTypeList + '&siteStatus=' + siteStatus;
 			$.getJSON(url, function(data) {
-				console.log(data.value.timeSeries.length + ' usgs gages found.');
+				//console.log(data.value.timeSeries.length + ' usgs gages found.', data.value.timeSeries);
 
 				$.each(data.value.timeSeries, function( index, site ) {
 					
