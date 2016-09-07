@@ -6,15 +6,15 @@
 
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.css" />
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.0-rc.3/dist/leaflet.css" />
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 </head>
 <body>
 	<div id="mapid" style="width: 800px; height: 600px"></div>
 
-	<script src="http://cdn.leafletjs.com/leaflet-0.7.5/leaflet.js"></script>
+	<script src="https://unpkg.com/leaflet@1.0.0-rc.3/dist/leaflet.js"></script>
 	<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
-	<script src="http://code.highcharts.com/highcharts.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highcharts/4.2.6/highcharts.js"></script>
 	
 	<script>
 		var map= L.map('mapid');
@@ -60,7 +60,7 @@
 			var timeQueryRange = '&startDT=2016-08-28&endDT=2016-09-01'
 			var timeQuery = '&period=P7D'
 			
-			$.getJSON('http://waterservices.usgs.gov/nwis/iv/?format=json&sites=' + e.layer.data.siteCode[0].value + '&parameterCd=00065' + timeQuery, function(data) {
+			$.getJSON('https://staging.waterservices.usgs.gov/nwis/iv/?format=json&sites=' + e.layer.data.siteCode[0].value + '&parameterCd=00065' + timeQuery, function(data) {
 				//console.log('graphdata: ',data)
 
 				if (data.value.timeSeries[0].values[0].value.length <= 0) return;
@@ -119,7 +119,7 @@
 			var siteTypeList = 'OC,OC-CO,ES,LK,ST,ST-CA,ST-DCH,ST-TS';
 			var siteStatus = 'active';
 
-			var url = 'http://waterservices.usgs.gov/nwis/iv/?format=json&bBox=' + bbox + '&parameterCd=' + parameterCodeList + '&siteType=' + siteTypeList + '&siteStatus=' + siteStatus;
+			var url = 'https://staging.waterservices.usgs.gov/nwis/iv/?format=json&bBox=' + bbox + '&parameterCd=' + parameterCodeList + '&siteType=' + siteTypeList + '&siteStatus=' + siteStatus;
 			$.getJSON(url, function(data) {
 				//console.log(data.value.timeSeries.length + ' usgs gages found.', data.value.timeSeries);
 
