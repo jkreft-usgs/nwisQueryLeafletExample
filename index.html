@@ -56,19 +56,14 @@
 			var timeQueryRange = '&startDT=2016-08-28&endDT=2016-09-01'
 			var timeQuery = '&period=P7D'
 			
-			$.getJSON('https://staging.waterservices.usgs.gov/nwis/iv/?format=json&sites=' + e.layer.data.siteCode[0].value + '&parameterCd=00065' + timeQuery, function(data) {
-				//console.log('graphdata: ',data)
+			$.getJSON('https://staging.waterservices.usgs.gov/nwis/iv/?format=nwjson&sites=' + e.layer.data.siteCode[0].value + '&parameterCd=00065' + timeQuery, function(data) {
+				console.log('graphdata: ',data)
 
-				if (data.value.timeSeries[0].values[0].value.length <= 0) return;
+				if (data.data[0].time_series_data.length <= 0) return;
 
 				//if there is some data, show the div
 				$('#graphContainer').show();
 
-				//transpose array
-				var graphData = [];
-				$.map( data.value.timeSeries[0].values[0].value, function( val, i ) {
-					graphData.push([Date.parse(val.dateTime),parseFloat(val.value)])
-				});
 				Highcharts.setOptions({global: { useUTC: false } });
 				$('#graphContainer').highcharts({
 					chart: {
@@ -98,7 +93,7 @@
 							pointFormat: "Gage height: {point.y} feet"
 						},
 						showInLegend: false, 
-						data: graphData
+						data: data.data[0].time_series_data
 					}]
 				});
 			});
